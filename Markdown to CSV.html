@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown表格转CSV</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#FF7D00',
+                        neutral: '#F5F7FA',
+                        dark: '#1D2129',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .transition-all-300 {
+                transition: all 0.3s ease;
+            }
+            .hover-scale {
+                transition: transform 0.3s ease;
+            }
+            .hover-scale:hover {
+                transform: scale(1.02);
+            }
+            .card-shadow {
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+            }
+        }
+    </style>
+</head>
+<body class="font-inter bg-neutral min-h-screen flex flex-col">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-table text-primary text-2xl"></i>
+                <h1 class="text-xl md:text-2xl font-bold text-dark">Markdown表格转CSV</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="themeToggle" class="p-2 rounded-full hover:bg-gray-100 transition-all-300">
+                    <i class="fa-solid fa-moon text-dark"></i>
+                </button>
+                <button class="hidden md:flex items-center space-x-2 bg-primary/10 text-primary px-4 py-2 rounded-lg hover:bg-primary/20 transition-all-300">
+                    <i class="fa-solid fa-question-circle"></i>
+                    <span>帮助</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要内容区域 -->
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <section class="max-w-4xl mx-auto">
+            <!-- 介绍卡片 -->
+            <div class="bg-white rounded-2xl p-6 mb-8 card-shadow hover-scale">
+                <h2 class="text-2xl font-bold text-dark mb-3 flex items-center">
+                    <i class="fa-solid fa-info-circle text-primary mr-2"></i>
+                    工具介绍
+                </h2>
+                <p class="text-gray-600 mb-4">
+                    这是一个将Markdown格式表格转换为CSV格式的工具。您只需粘贴Markdown表格，点击转换按钮，即可生成CSV文件并下载。
+                </p>
+                <div class="flex flex-wrap gap-4">
+                    <div class="flex items-center text-sm text-gray-500">
+                        <i class="fa-solid fa-check-circle text-green-500 mr-2"></i>
+                        <span>保留原始表格数据结构</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-500">
+                        <i class="fa-solid fa-check-circle text-green-500 mr-2"></i>
+                        <span>自动处理分隔符行</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-500">
+                        <i class="fa-solid fa-check-circle text-green-500 mr-2"></i>
+                        <span>支持复制和下载功能</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 输入区域 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white rounded-2xl p-6 card-shadow">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-dark flex items-center">
+                            <i class="fa-solid fa-edit text-primary mr-2"></i>
+                            Markdown输入
+                        </h3>
+                        <div class="flex space-x-2">
+                            <button id="pasteBtn" class="p-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-all-300">
+                                <i class="fa-solid fa-clipboard mr-1"></i>粘贴
+                            </button>
+                            <button id="exampleBtn" class="p-2 text-sm bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-all-300">
+                                <i class="fa-solid fa-file-example mr-1"></i>示例
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <textarea id="markdownInput" rows="12" class="w-full p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none resize-none transition-all-300" placeholder="请在此处粘贴Markdown表格...">|111|222|333|
+|-|-|-|
+|111|222|333|
+|111|222|333|
+|111|222|333|</textarea>
+                        <div class="absolute bottom-3 right-3 text-xs text-gray-400">
+                            <span id="charCount">4行</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 输出区域 -->
+                <div class="bg-white rounded-2xl p-6 card-shadow">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-dark flex items-center">
+                            <i class="fa-solid fa-file-csv text-secondary mr-2"></i>
+                            CSV输出
+                        </h3>
+                        <div class="flex space-x-2">
+                            <button id="copyBtn" class="p-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-all-300">
+                                <i class="fa-solid fa-copy mr-1"></i>复制
+                            </button>
+                            <button id="downloadBtn" class="p-2 text-sm bg-secondary/10 text-secondary hover:bg-secondary/20 rounded-lg transition-all-300">
+                                <i class="fa-solid fa-download mr-1"></i>下载
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <textarea id="csvOutput" rows="12" class="w-full p-4 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-secondary/50 focus:border-secondary outline-none resize-none transition-all-300" placeholder="转换后的CSV将显示在这里..." readonly></textarea>
+                        <div id="copyNotification" class="absolute bottom-3 right-3 text-xs text-green-500 opacity-0 transition-all-300">
+                            <i class="fa-solid fa-check mr-1"></i>已复制
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="flex justify-center mb-8">
+                <button id="convertBtn" class="flex items-center space-x-2 bg-primary text-white px-8 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-all-300 shadow-lg shadow-primary/20 hover-scale">
+                    <i class="fa-solid fa-exchange-alt text-lg"></i>
+                    <span>转换表格</span>
+                </button>
+            </div>
+
+            <!-- 预览区域 -->
+            <div class="bg-white rounded-2xl p-6 mb-8 card-shadow">
+                <h3 class="text-xl font-bold text-dark mb-4 flex items-center">
+                    <i class="fa-solid fa-table text-primary mr-2"></i>
+                    表格预览
+                </h3>
+                <div id="tablePreview" class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr id="previewHeader"></tr>
+                        </thead>
+                        <tbody id="previewBody" class="bg-white divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+                <div id="emptyPreview" class="py-12 text-center text-gray-400 hidden">
+                    <i class="fa-solid fa-table-list text-4xl mb-3"></i>
+                    <p>表格预览将显示在这里</p>
+                </div>
+            </div>
+
+            <!-- 使用说明 -->
+            <div class="bg-white rounded-2xl p-6 card-shadow">
+                <h3 class="text-xl font-bold text-dark mb-4 flex items-center">
+                    <i class="fa-solid fa-book text-primary mr-2"></i>
+                    使用说明
+                </h3>
+                <div class="space-y-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                            1
+                        </div>
+                        <div class="ml-4">
+                            <h4 class="text-lg font-medium text-dark">粘贴Markdown表格</h4>
+                            <p class="text-gray-600">
+                                将您的Markdown格式表格粘贴到左侧的输入框中。确保表格格式正确，包含表头和数据行。
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                            2
+                        </div>
+                        <div class="ml-4">
+                            <h4 class="text-lg font-medium text-dark">点击转换按钮</h4>
+                            <p class="text-gray-600">
+                                点击"转换表格"按钮，系统将自动处理Markdown表格并转换为CSV格式。
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                            3
+                        </div>
+                        <div class="ml-4">
+                            <h4 class="text-lg font-medium text-dark">下载或复制CSV</h4>
+                            <p class="text-gray-600">
+                                转换完成后，您可以点击"下载"按钮获取CSV文件，或点击"复制"按钮将CSV内容复制到剪贴板。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-white border-t border-gray-200 py-6">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <p class="text-gray-500 text-sm">© 2025 Markdown表格转CSV工具 | 版权所有</p>
+                </div>
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-400 hover:text-primary transition-all-300">
+                        <i class="fa-brands fa-github text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-primary transition-all-300">
+                        <i class="fa-brands fa-twitter text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-primary transition-all-300">
+                        <i class="fa-brands fa-linkedin text-xl"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // DOM元素
+        const markdownInput = document.getElementById('markdownInput');
+        const csvOutput = document.getElementById('csvOutput');
+        const convertBtn = document.getElementById('convertBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const pasteBtn = document.getElementById('pasteBtn');
+        const exampleBtn = document.getElementById('exampleBtn');
+        const charCount = document.getElementById('charCount');
+        const copyNotification = document.getElementById('copyNotification');
+        const previewHeader = document.getElementById('previewHeader');
+        const previewBody = document.getElementById('previewBody');
+        const emptyPreview = document.getElementById('emptyPreview');
+        const themeToggle = document.getElementById('themeToggle');
+
+        // 示例Markdown表格
+        const exampleMarkdown = `|111|222|333|
+|-|-|-|
+|111|222|333|
+|111|222|333|
+|111|222|333|`;
+
+        // 计算输入行数
+        function updateCharCount() {
+            const lines = markdownInput.value.trim() ? markdownInput.value.split('\n').length : 0;
+            charCount.textContent = `${lines}行`;
+        }
+
+        // 转换Markdown表格为CSV
+        function convertMarkdownToCSV(markdown) {
+            if (!markdown) return '';
+            
+            const lines = markdown.trim().split('\n');
+            const csvLines = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                // 跳过分隔符行（|---|---|---|）
+                if (i === 1 && line.startsWith('|') && line.includes('-') && line.includes('|')) {
+                    continue;
+                }
+                
+                // 处理每行数据
+                const cells = line
+                    .split('|')
+                    .map(cell => cell.trim())
+                    .filter((cell, index, arr) => index > 0 && index < arr.length - 1); // 移除首尾空单元格
+                
+                if (cells.length > 0) {
+                    // 转义引号并添加引号
+                    const escapedCells = cells.map(cell => {
+                        // 如果单元格包含引号或逗号，用引号包裹并转义引号
+                        if (cell.includes('"') || cell.includes(',')) {
+                            return `"${cell.replace(/"/g, '""')}"`;
+                        }
+                        return cell;
+                    });
+                    
+                    csvLines.push(escapedCells.join(','));
+                }
+            }
+            
+            return csvLines.join('\n');
+        }
+
+        // 更新表格预览
+        function updateTablePreview(csv) {
+            if (!csv) {
+                previewHeader.innerHTML = '';
+                previewBody.innerHTML = '';
+                emptyPreview.classList.remove('hidden');
+                return;
+            }
+            
+            emptyPreview.classList.add('hidden');
+            
+            const lines = csv.split('\n');
+            if (lines.length === 0) return;
+            
+            // 处理表头
+            const headerCells = lines[0].split(',');
+            previewHeader.innerHTML = headerCells.map(cell => `
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ${cell.replace(/^"|"$/g, '').replace(/""/g, '"')}
+                </th>
+            `).join('');
+            
+            // 处理表格内容
+            previewBody.innerHTML = '';
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                
+                const row = document.createElement('tr');
+                row.className = i % 2 === 0 ? 'bg-gray-50' : 'bg-white';
+                
+                const cells = lines[i].split(',');
+                row.innerHTML = cells.map(cell => `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${cell.replace(/^"|"$/g, '').replace(/""/g, '"')}
+                    </td>
+                `).join('');
+                
+                previewBody.appendChild(row);
+            }
+        }
+
+        // 转换按钮点击事件
+        convertBtn.addEventListener('click', () => {
+            const csv = convertMarkdownToCSV(markdownInput.value);
+            csvOutput.value = csv;
+            updateTablePreview(csv);
+            
+            // 添加按钮点击效果
+            convertBtn.classList.add('scale-95');
+            setTimeout(() => {
+                convertBtn.classList.remove('scale-95');
+            }, 200);
+        });
+
+        // 复制按钮点击事件
+        copyBtn.addEventListener('click', () => {
+            if (csvOutput.value) {
+                csvOutput.select();
+                document.execCommand('copy');
+                
+                // 显示复制成功提示
+                copyNotification.style.opacity = '1';
+                setTimeout(() => {
+                    copyNotification.style.opacity = '0';
+                }, 2000);
+            }
+        });
+
+        // 下载按钮点击事件
+        downloadBtn.addEventListener('click', () => {
+            if (csvOutput.value) {
+                const blob = new Blob([csvOutput.value], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'table.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        });
+
+        // 粘贴按钮点击事件
+        pasteBtn.addEventListener('click', async () => {
+            try {
+                const text = await navigator.clipboard.readText();
+                markdownInput.value = text;
+                updateCharCount();
+            } catch (err) {
+                console.error('无法访问剪贴板', err);
+            }
+        });
+
+        // 示例按钮点击事件
+        exampleBtn.addEventListener('click', () => {
+            markdownInput.value = exampleMarkdown;
+            updateCharCount();
+        });
+
+        // 输入事件监听
+        markdownInput.addEventListener('input', updateCharCount);
+
+        // 初始化
+        updateCharCount();
+        updateTablePreview('');
+
+        // 主题切换
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            const isDark = document.body.classList.contains('dark');
+            
+            if (isDark) {
+                document.body.classList.add('bg-gray-900', 'text-white');
+                document.body.classList.remove('bg-neutral', 'text-dark');
+                themeToggle.innerHTML = '<i class="fa-solid fa-sun text-yellow-400"></i>';
+            } else {
+                document.body.classList.remove('bg-gray-900', 'text-white');
+                document.body.classList.add('bg-neutral', 'text-dark');
+                themeToggle.innerHTML = '<i class="fa-solid fa-moon text-dark"></i>';
+            }
+        });
+
+        // 添加页面加载动画
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.classList.add('opacity-0');
+            setTimeout(() => {
+                document.body.classList.add('transition-opacity', 'duration-500');
+                document.body.classList.remove('opacity-0');
+            }, 100);
+        });
+    </script>
+</body>
+</html>
+    
